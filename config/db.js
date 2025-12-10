@@ -2,29 +2,42 @@
 require('dotenv').config();
 const { Sequelize } = require("sequelize");
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: process.env.DB_DIALECT,
-    logging: false,
-    timezone: '-05:00',
-    // === CONFIGURACIÓN CRÍTICA PARA SUPABASE ===
-    dialectOptions: {
-      host: process.env.DB_HOST,
-      // 1. FORZAR IPv4: Soluciona ENETUNREACH
-      family: 4, 
-      // 2. REQUERIR SSL: Requisito de Supabase para conexiones externas
-      ssl: {
-        require: true,
-        // Permite que la conexión se realice sin un certificado CA si el host lo soporta
-        rejectUnauthorized: false 
+// Comprobamos si existe la URL de conexión completa (preferida en hosting)
+const connectionString = process.env.DATABASE_URL;
+
+const sequelize = connectionString
+  ? // 1. Usar la Cadena de Conexión (URI) si existe
+    new Sequelize(connectionString, {
+      dialect: 'postgres',
+      logging: false,
+      timezone: '-05:00',
+      dialectOptions: {
+        // Necesario para que el driver sepa cómo manejar el SSL
+        ssl: {
+          require: true,
+          rejectUnauthorized: false, 
+        },
+      },
+    })
+  : // 2. Usar las variables separadas (el método que tienes actualmente)
+    new Sequelize(
+      process.env.DB_NAME,
+      process.env.DB_USER,
+      process.env.DB_PASSWORD,
+      {
+        host: process.env.DB_HOST,
+        dialect: process.env.DB_DIALECT,
+        logging: false,
+        timezone: '-05:00',
+        dialectOptions: {
+          host: process.env.DB_HOST,
+          family: 4, // Forzar IPv4
+          ssl: {
+            require: true,
+            rejectUnauthorized: false,
+          },
+        },
       }
-    }
-    // ===========================================
-  }
-);
+    );
 
 module.exports = sequelize;
