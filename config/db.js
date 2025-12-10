@@ -11,14 +11,19 @@ const sequelize = new Sequelize(
     dialect: process.env.DB_DIALECT,
     logging: false,
     timezone: '-05:00',
-    // === SOLUCIÓN: FORZAR IPv4 ===
+    // === CONFIGURACIÓN CRÍTICA PARA SUPABASE ===
     dialectOptions: {
       host: process.env.DB_HOST,
-      ssl: false, // Desactiva SSL por si acaso (Supabase no lo requiere por defecto)
-      // La opción más importante: le dice al driver 'pg' que solo use IPv4
+      // 1. FORZAR IPv4: Soluciona ENETUNREACH
       family: 4, 
-    },
-    // =============================
+      // 2. REQUERIR SSL: Requisito de Supabase para conexiones externas
+      ssl: {
+        require: true,
+        // Permite que la conexión se realice sin un certificado CA si el host lo soporta
+        rejectUnauthorized: false 
+      }
+    }
+    // ===========================================
   }
 );
 
